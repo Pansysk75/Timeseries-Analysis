@@ -26,9 +26,9 @@ def trim_datasets(data, alignment: Literal['start', 'end', 'random']):
     data_length = min(len(v) for v in data.values())
 
     if alignment == 'start':
-        trimmed_data = {key: value[0:data_length] for (key, value) in data}
+        trimmed_data = {key: value[0:data_length] for (key, value) in data.items()}
     elif alignment == 'end':
-        trimmed_data = {key: value[-data_length:] for (key, value) in data}
+        trimmed_data = {key: value[-data_length:] for (key, value) in data.items()}
     elif alignment == 'random':
         for dataset in data:
             offset = random.randint(0, len(data[dataset]) - data_length)
@@ -43,12 +43,18 @@ def split_dataset(xV, split_ratio = 0.8):
     split_idx = round(len(xV) * split_ratio)
     return (xV[0:split_idx], xV[split_idx+1:])
 
+def first_diff(xV):
+    return np.diff(xV, 1)
+
+def reverse_first_diff(x0, xV):
+    return np.concatenate(([x0], xV)).cumsum()
+
 def rmse(xV1, xV2):
-    return np.sqrt(np.square(np.subtract(xV1, xV2)).mean())
+    return np.sqrt(np.nanmean(np.square(np.subtract(xV1, xV2))))
 
 def nrmse(xV1, xV2):
     '''Normalized rmse (normalized by std of xV1)'''
-    return rmse(xV1,xV2)/np.std(xV1)
+    return rmse(xV1,xV2)/np.nanstd(xV1)
 
 def plot_timeseries_stats(xV, name, savepath=None):
     '''Plot timeseries, auto-correlation and partial auto-correlation.'''
@@ -79,7 +85,7 @@ def batch_arima_test(xV, p_min=0, p_max=5, q_min=0, q_max=5, d=0, show=False):
     for p in range(p_min, p_max+1):
         for q in range(q_min, q_max+1):
             sm.tsa.arima
-            model = sm.tsa.ARIMA(xV, order=(p, d, q)).fit()
+            model = sm.tsa.ARIMA(xV, order=(p, d, q)).fit(method_kwargs={"warn_convergence": False})
             aic = model.aicc
             aic_values.append({"p":p, "q":q, "aic":aic})
             print(f"Fitted ({p}, {d}, {q}), aic={aic}")
@@ -88,6 +94,7 @@ def batch_arima_test(xV, p_min=0, p_max=5, q_min=0, q_max=5, d=0, show=False):
                 best_model = model
     if show:
         plt.figure()
+        plt.title("Aic values for different ARIMA parameters")
         df = pd.DataFrame(aic_values).pivot(index="p", columns="q", values="aic")
         ax = sns.heatmap(df, fmt=".1f",
           norm=matplotlib.colors.PowerNorm(0.3),
@@ -100,3 +107,22 @@ def batch_arima_test(xV, p_min=0, p_max=5, q_min=0, q_max=5, d=0, show=False):
 
 # def generate_model_report(arima_model, train_data):
 #     arima_model.predict
+
+
+
+def in_sample_predict_ahead(xV, model, Tmax=3):
+    '''
+    Get in-sample T-timestep ahead prediction T=1, 2, 3 ...
+    '''
+    nobs = len(xV)
+    predM = []
+    tmin = np.max(
+        [len(model.arparams), len(model.maparams), 1])  # start prediction after getting all lags needed from model
+    for T in np.arange(1, Tmax):
+        predV = np.full(shape=nobs, fill_value=np.nan)
+        for t in np.arange(tmin, nobs - T):
+            pred_ = model.predict(start=t, end=t + T - 1, dynamic=True)
+            predV[t + T - 1] = pred_[-1]
+        predM.append(predV)
+    return predM
+
