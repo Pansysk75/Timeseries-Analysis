@@ -43,13 +43,15 @@ tau = {"complete_dataset": 5, "small_dataset": 3}
 m = {"complete_dataset": 5, "small_dataset": 4}
 
 # plot attractors
+# for name, dataset in data.items():
+#     embedded = embed_data(dataset, order=m[name], delay=tau[name])
+#     # 3d attractor
+#     #embedded = embed_data(dataset, order=3, delay=1)
+#     plot_3d_attractor(embedded, name)
+
+# correlation dimension
 for name, dataset in data.items():
-    embedded = embed_data(dataset, order=m[name], delay=tau[name])
-    # 3d attractor
-    #embedded = embed_data(dataset, order=3, delay=1)
-    plot_3d_attractor(embedded, name)
-
-
+    correlationdimension(dataset, tau[name], m_max=10, show=True, timeseries_name=name)
     
 
 

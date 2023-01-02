@@ -6,6 +6,7 @@ from typing import Literal
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 from statsmodels.stats.diagnostic import acorr_ljungbox
 from nolitsa import delay, dimension
+import nolds
 
 def read_datfile(path):
     xV = np.loadtxt(path)
@@ -124,3 +125,30 @@ def embed_data(x, order=3, delay=1):
     for i in range(order):
         Y[i] = x[i * delay:i * delay + Y.shape[1]]
     return Y.T
+
+def correlationdimension(xV, tau, m_max, fac=4, logrmin=-1e6, logrmax=1e6, show=False, timeseries_name = None):
+    m_all = np.arange(1, m_max + 1)
+    corrdimV = []
+    logrM = []
+    logCrM = []
+    polyM = []
+
+    for m in m_all:
+        corrdim, *corrData = nolds.corr_dim(xV, m, debug_data=True)
+        corrdimV.append(corrdim)
+        logrM.append(corrData[0][0])
+        logCrM.append(corrData[0][1])
+        polyM.append(corrData[0][2])
+    if show:
+        fig, ax = plt.subplots(1, 1, figsize=(14, 8))
+        ax.plot(m_all, corrdimV, marker='x', linestyle='-.')
+        ax.set_xlabel('m')
+        ax.set_xticks(m_all)
+        ax.set_ylabel('v')
+        ax.set_title(f'Corr Dim vs m {timeseries_name}')
+
+        plt.savefig(f"./Part2/plots/cor_dim_{timeseries_name}.png")
+        plt.show()
+        plt.close()
+
+    return corrdimV, logrM, logCrM, polyM
