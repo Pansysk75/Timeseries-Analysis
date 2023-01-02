@@ -152,3 +152,72 @@ def correlationdimension(xV, tau, m_max, fac=4, logrmin=-1e6, logrmax=1e6, show=
         plt.close()
 
     return corrdimV, logrM, logCrM, polyM
+
+def nrmse(trueV, predictedV):
+    vartrue = np.sum((trueV - np.mean(trueV)) ** 2)
+    varpred = np.sum((predictedV - trueV) ** 2)
+    return np.sqrt(varpred / vartrue)
+
+def localpredictnrmse(xV, nlast, m, tau=1, Tmax=1, nnei=1, q=0, show=True, timeseries_name=None):
+    xV = xV.reshape(-1, )
+    n = xV.shape[0]
+    if nlast > n - 2 * m * tau:
+        print('test set too large')
+    n1 = n - nlast
+    if n1 < 2 * (m - 1) * tau - Tmax:
+        print('the length of training set is too small for this data size')
+    n1vec = n1 - (m - 1) * tau - 1
+    xM = np.full(shape=(n1vec, m), fill_value=np.nan)
+    for j in np.arange(m):
+        xM[:, m - j - 1] = xV[j * tau:n1vec + j * tau]
+    from scipy.spatial import KDTree
+    kdtreeS = KDTree(xM)
+
+    # For each target point, find neighbors, apply the linear models and keep track
+    # of the predicted values each prediction time.
+    ntar = nlast - Tmax + 1
+    preM = np.full(shape=(ntar, Tmax), fill_value=np.nan)
+    winnowM = np.full(shape=(ntar, (m - 1) * tau + 1), fill_value=np.nan)
+
+    ifirst = n1 - (m - 1) * tau
+    for i in np.arange((m - 1) * tau + 1):
+        winnowM[:, i] = xV[ifirst + i - 1:ifirst + ntar + i - 1]
+
+    for T in np.arange(1, Tmax + 1):
+        targM = winnowM[:, :-(m + 1) * tau:-tau]
+        _, nneiindM = kdtreeS.query(targM, k=nnei, p=2)
+        for i in np.arange(ntar):
+            neiM = xM[nneiindM[i], :]
+            yV = xV[nneiindM[i] + (m - 1) * tau + 1]
+            if q == 0 or nnei == 1:
+                preM[i, T - 1] = np.mean(yV)
+            else:
+                mneiV = np.mean(neiM, axis=0)
+                my = np.mean(yV)
+                zM = neiM - mneiV
+                [Ux, Sx, Vx] = np.linalg.svd(zM, full_matrices=False)
+                Sx = np.diag(Sx)
+                Vx = Vx.T
+                tmpM = Vx[:, :q] @ (np.linalg.inv(Sx[:q, :q]) @ Ux[:, :q].T)
+                lsbV = tmpM @ (yV - my)
+                preM[i, T - 1] = my + (targM[i, :] - mneiV) @ lsbV
+        winnowM = np.concatenate([winnowM, preM[:, [T - 1]]], axis=1)
+    nrmseV = np.full(shape=(Tmax, 1), fill_value=np.nan)
+
+    start_idx = (n1vec + (m - 1) * tau)
+    end_idx = start_idx + preM.shape[0]
+    for t_idx in np.arange(1, Tmax + 1):
+        nrmseV[t_idx - 1] = nrmse(trueV=xV[start_idx + t_idx:end_idx + t_idx], predictedV=preM[:, t_idx - 1])
+    if show:
+        fig, ax = plt.subplots(1, 1)
+        ax.plot(np.arange(1, Tmax + 1), nrmseV, marker='x')
+        ax.set_xlabel('prediction time T')
+        ax.set_ylabel('NRMSE(T)')
+        ax.axhline(1., color='yellow')
+        ax.set_title(f'NRMSE(T), {timeseries_name} m={m}, tau={tau}, q={q}, n={n}, nlast={nlast}')
+
+        plt.savefig(f"./Part2/plots/nrmse_local_q{q}_{timeseries_name}.png")
+        plt.show()
+        plt.close()
+
+    return nrmseV, preM
