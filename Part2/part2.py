@@ -23,7 +23,7 @@ for name, dataset in data.items():
 # for name, dataset in data.items():
 #     plot_delayed_mutual_information(dataset, 20, f"{name}")
 
-tau = {"complete_dataset": 5, "small_dataset": 3}
+tau = {"complete_dataset": 5, "small_dataset": 1}
 
 # choice of embedding dimension m
 # maxnum = {"complete_dataset": 320, "small_dataset": 40}
