@@ -62,7 +62,7 @@ def plot_timeseries_stats(xV, name, savepath=None):
     fig.suptitle(name, fontsize=16)
 
     plt.subplot(2, 1, 1).plot(xV)
-    # plt.savefig("plots/timeseries/" + dataset_name + ".png")
+    plt.savefig("plots/" + name + ".png")
 
     # From statsmodels module.
     plot_acf(xV, zero=False, lags=10, ax=plt.subplot(2,2,3))
@@ -75,7 +75,7 @@ def plot_timeseries_stats(xV, name, savepath=None):
 
     plt.show()
 
-def batch_arima_test(xV, p_min=0, p_max=5, q_min=0, q_max=5, d=0, show=False):
+def batch_arima_test(xV, p_min=0, p_max=5, q_min=0, q_max=5, d=0, show=False, name=None):
     '''Fits many arima models and returns the one with
     the smalles aic. Returns a statsmodels.tsa.ARIMA model and 
     a list of dictionaries containing "p", "q" and "aic" '''
@@ -92,33 +92,34 @@ def batch_arima_test(xV, p_min=0, p_max=5, q_min=0, q_max=5, d=0, show=False):
             if aic < best_aic:
                 best_aic = aic
                 best_model = model
-    if show:
-        plt.figure()
-        plt.title("Aic values for different ARIMA parameters")
-        df = pd.DataFrame(aic_values).pivot(index="p", columns="q", values="aic")
-        ax = sns.heatmap(df, fmt=".1f",
-          norm=matplotlib.colors.PowerNorm(0.3),
-        cmap="gray_r",annot=True)
-        ax.invert_yaxis()
-        plt.show()
+
     
     return best_model, aic_values
 
+def plot_aic_grid(aic_values, name, savepath):
+    plt.figure()
+    title = name + "\nAic values for different ARIMA parameters"
+    plt.title(title)
+    df = pd.DataFrame(aic_values).pivot(index="p", columns="q", values="aic")
+    ax = sns.heatmap(df, fmt=".1f",
+        norm=matplotlib.colors.PowerNorm(0.3),
+    cmap="gray_r",annot=True, cbar_kws={"label":"AIC value"})
+    ax.invert_yaxis()
+    if(savepath):
+        plt.savefig(savepath + "/" + name + "_aic_grid.png")
+    plt.show()
 
-# def generate_model_report(arima_model, train_data):
-#     arima_model.predict
 
 
-
-def in_sample_predict_ahead(xV, model, Tmax=3):
+def in_sample_predict_ahead(xV, model, T_list=[1]):
     '''
-    Get in-sample T-timestep ahead prediction T=1, 2, 3 ...
+    Get in-sample T-timestep ahead predictions for every T in T_list
     '''
     nobs = len(xV)
     predM = []
     tmin = np.max(
-        [len(model.arparams), len(model.maparams), 1])  # start prediction after getting all lags needed from model
-    for T in np.arange(1, Tmax):
+        [len(model.arparams), len(model.maparams), 1])
+    for T in T_list:
         predV = np.full(shape=nobs, fill_value=np.nan)
         for t in np.arange(tmin, nobs - T):
             pred_ = model.predict(start=t, end=t + T - 1, dynamic=True)
