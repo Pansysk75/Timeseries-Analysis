@@ -56,24 +56,78 @@ for name, dataset in data.items():
     print(f"nrmse for 1 step lap: {nrmse_lap[0][0]}")
 
     # plot 1 step predictions
-    fig, ax = plt.subplots(1, 2, figsize=(14, 8))
-    # llp
-    ax[0].plot(dataset[len(dataset) - n_last + T_max - 1: len(dataset)], label='true values')
-    ax[0].plot(pred_llp[:, 0], label='predictions')
+    
+    ### llp
+    fig = plt.figure(figsize=(12,8))
+    fig.suptitle(name, fontsize=16)
 
-    ax[0].set_title("local linear model")
-    ax[0].legend()
+    plt.subplot(3, 1, 1)
+    plt.plot(dataset[len(dataset) - n_last + T_max - 1: len(dataset)], label='true values')
+    plt.plot(pred_llp[:, 0], label='predictions')
 
-    # lap
-    ax[1].plot(dataset[len(dataset) - n_last + T_max - 1: len(dataset)], label='true values')
-    ax[1].plot(pred_lap[:, 0], label='predictions')
+    plt.title("local linear model")
+    plt.legend()
 
-    ax[1].set_title("local average model")
-    ax[1].legend()
+    # Plot residuals
+    plt.subplot(3, 1, 2)
+    resid = dataset[len(dataset) - n_last + T_max - 1: len(dataset)] - pred_llp[:, 0]
+    resid = resid[~np.isnan(resid)]
+    plt.scatter(np.arange(len(resid)), resid)
+    plt.title("Residuals")
+    ### (Make y axis limits symmetric)
+    y_bound = np.max(np.abs(plt.ylim()))
+    plt.ylim(-y_bound, y_bound)
 
-    plt.savefig(f"./Part2/plots/local_pred_{name}.png")
+    # Plot residuals autocorrelation
+    ax = plt.subplot(3,2,5)
+    plot_pacf(resid, zero=False, lags=10, ax=ax, method='ywm')
+    plt.title("Residuals PACF")
+
+    # Plot residuals partial autocorrelation
+    ax = plt.subplot(3,2,6)
+    plot_acf(resid, zero=False, lags=10, ax=ax)
+    plt.title("Residuals ACF")
+
+    plt.savefig(f"./Part2/plots/llp_{name}.png")
     plt.show()
     plt.close()
+
+
+    ### lap
+    fig = plt.figure(figsize=(12,8))
+    fig.suptitle(name, fontsize=16)
+
+    plt.subplot(3, 1, 1)
+    plt.plot(dataset[len(dataset) - n_last + T_max - 1: len(dataset)], label='true values')
+    plt.plot(pred_lap[:, 0], label='predictions')
+
+    plt.title("local average model")
+    plt.legend()
+
+    # Plot residuals
+    plt.subplot(3, 1, 2)
+    resid = dataset[len(dataset) - n_last + T_max - 1: len(dataset)] - pred_lap[:, 0]
+    resid = resid[~np.isnan(resid)]
+    plt.scatter(np.arange(len(resid)), resid)
+    plt.title("Residuals")
+    ### (Make y axis limits symmetric)
+    y_bound = np.max(np.abs(plt.ylim()))
+    plt.ylim(-y_bound, y_bound)
+
+    # Plot residuals autocorrelation
+    ax = plt.subplot(3,2,5)
+    plot_pacf(resid, zero=False, lags=10, ax=ax, method='ywm')
+    plt.title("Residuals PACF")
+
+    # Plot residuals partial autocorrelation
+    ax = plt.subplot(3,2,6)
+    plot_acf(resid, zero=False, lags=10, ax=ax)
+    plt.title("Residuals ACF")
+
+    plt.savefig(f"./Part2/plots/lap_{name}.png")
+    plt.show()
+    plt.close()
+    
 
   
     
