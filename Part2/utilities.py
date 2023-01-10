@@ -7,6 +7,7 @@ from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 from statsmodels.stats.diagnostic import acorr_ljungbox
 from nolitsa import delay, dimension
 import nolds
+from statsmodels.tsa.arima.model import ARIMA
 
 def read_datfile(path):
     xV = np.loadtxt(path)
@@ -33,6 +34,7 @@ def trim_dataset(xV, des_length, alignment: Literal['start', 'end', 'random']):
 def split_dataset(xV, split_ratio = 0.8):
     split_idx = round(len(xV) * split_ratio)
     return (xV[0:split_idx], xV[split_idx+1:])
+
 
 def plot_timeseries_stats(xV, name, savepath=None):
     '''Plot timeseries, auto-correlation, partial auto-correlation and portmanteau pvalues.'''
@@ -63,6 +65,7 @@ def plot_timeseries_stats(xV, name, savepath=None):
     plt.show()
     plt.close()
 
+
 def plot_delayed_mutual_information(xV, maxtau, timeseries_name: str):
     mi = delay.dmi(xV, maxtau=maxtau + 1)[1:]
 
@@ -76,6 +79,7 @@ def plot_delayed_mutual_information(xV, maxtau, timeseries_name: str):
     plt.savefig(f"./Part2/plots/mi_{timeseries_name}.png")
     plt.show()
     plt.close()
+
 
 def falsenearestneighbors(xV, m_max=10, tau=1, maxnum=None, show=False, timeseries_name=None):
     dim = np.arange(1, m_max + 1)
@@ -93,6 +97,7 @@ def falsenearestneighbors(xV, m_max=10, tau=1, maxnum=None, show=False, timeseri
         plt.close()
     return f1
 
+
 def plot_3d_attractor(xM, timeseries_name, connect_with_lines=False):
     fig = plt.figure(figsize=(14, 8))
     ax = fig.add_subplot(111, projection='3d')
@@ -104,6 +109,7 @@ def plot_3d_attractor(xM, timeseries_name, connect_with_lines=False):
     plt.savefig(f"./Part2/plots/3d_{timeseries_name}")
     plt.show()
     plt.close()
+
 
 def embed_data(x, order=3, delay=1):
     """Time-delay embedding.
@@ -125,6 +131,7 @@ def embed_data(x, order=3, delay=1):
     for i in range(order):
         Y[i] = x[i * delay:i * delay + Y.shape[1]]
     return Y.T
+
 
 def correlationdimension(xV, tau, m_max, fac=4, logrmin=-1e6, logrmax=1e6, show=False, timeseries_name = None):
     m_all = np.arange(1, m_max + 1)
@@ -153,10 +160,12 @@ def correlationdimension(xV, tau, m_max, fac=4, logrmin=-1e6, logrmax=1e6, show=
 
     return corrdimV, logrM, logCrM, polyM
 
+
 def nrmse(trueV, predictedV):
     vartrue = np.sum((trueV - np.mean(trueV)) ** 2)
     varpred = np.sum((predictedV - trueV) ** 2)
     return np.sqrt(varpred / vartrue)
+
 
 def localpredictnrmse(xV, nlast, m, tau=1, Tmax=1, nnei=1, q=0, show=True, timeseries_name=None):
     xV = xV.reshape(-1, )
