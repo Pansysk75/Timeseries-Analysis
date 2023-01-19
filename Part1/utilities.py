@@ -58,20 +58,28 @@ def nrmse(xV1, xV2):
 
 def plot_timeseries_stats(xV, name, savepath=None):
     '''Plot timeseries, auto-correlation and partial auto-correlation.'''
-    fig = plt.figure(figsize=(12,8))
-    fig.suptitle(name, fontsize=16)
+    fig = plt.figure(figsize=(8,2))
+    # fig.suptitle(name, fontsize=16)
 
-    plt.subplot(2, 1, 1).plot(xV)
-    plt.savefig("plots/" + name + ".png")
+    plt.subplot(1, 1, 1).plot(xV)
 
-    # From statsmodels module.
-    plot_acf(xV, zero=False, lags=10, ax=plt.subplot(2,2,3))
+    # ax = plt.subplot(2,3,6)
+    # norm_data = np.random.normal(np.mean(xV), np.std(xV), size=100000)
+    # sns.histplot(xV, ax=ax,kde=True, stat="density", bins=round(np.sqrt(len(xV))))
+    # sns.kdeplot(norm_data, ax=ax, color="orange", linestyle = "--")
+    # plt.title("Distribution vs Norm")
 
-    # From statsmodel module (yule-walker method).
-    plot_pacf(xV, zero=False, lags=10, ax=plt.subplot(2,2,4), method='ywm')   
+    # # From statsmodels module.
+    # plot_acf(xV, zero=False, lags=10, ax=plt.subplot(2,3,4))
+
+    # # From statsmodel module (yule-walker method).
+    # plot_pacf(xV, zero=False, lags=10, ax=plt.subplot(2,3,5), method='ywm')   
+
+
+    plt.tight_layout()
 
     if(savepath != None):
-        plt.savefig(savepath + "/" + name + ".png")
+        plt.savefig(savepath + "/" + name + ".png", dpi=200)
 
     plt.show()
 
@@ -97,14 +105,15 @@ def batch_arima_test(xV, p_min=0, p_max=5, q_min=0, q_max=5, d=0, show=False, na
     return best_model, aic_values
 
 def plot_aic_grid(aic_values, name, savepath):
-    plt.figure()
-    title = name + "\nAic values for different ARIMA parameters"
-    plt.title(title)
+    plt.figure(figsize=(6,5))
+    # title = name + "\nAic values for different ARIMA parameters"
+    # plt.title(title)
     df = pd.DataFrame(aic_values).pivot(index="p", columns="q", values="aic")
     ax = sns.heatmap(df, fmt=".1f",
         norm=matplotlib.colors.PowerNorm(0.3),
     cmap="gray_r",annot=True, cbar_kws={"label":"AIC value"})
     ax.invert_yaxis()
+    plt.tight_layout()
     if(savepath):
         plt.savefig(savepath + "/" + name + "_aic_grid.png")
     plt.show()
@@ -123,6 +132,23 @@ def in_sample_predict_ahead(xV, model, T_list=[1]):
         predV = np.full(shape=nobs, fill_value=np.nan)
         for t in np.arange(tmin, nobs - T):
             pred_ = model.predict(start=t, end=t + T - 1, dynamic=True)
+            predV[t + T - 1] = pred_[-1]
+        predM.append(predV)
+    return predM
+
+def predict_ahead(xV, model, T_list=[1]):
+    '''
+    Get in-sample T-timestep ahead predictions for every T in T_list
+    '''
+    nobs = len(xV)
+    temp_model = model.apply(xV, copy_initialization=True)
+    predM = []
+    tmin = np.max(
+        [len(model.arparams), len(model.maparams), 1])
+    for T in T_list:
+        predV = np.full(shape=nobs, fill_value=np.nan)
+        for t in np.arange(tmin, nobs - T):
+            pred_ = temp_model.predict(start=t, end=t + T - 1, dynamic=True)
             predV[t + T - 1] = pred_[-1]
         predM.append(predV)
     return predM
