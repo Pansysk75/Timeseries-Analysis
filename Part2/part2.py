@@ -53,6 +53,9 @@ for name, dataset in data.items():
     nrmse_llp, pred_llp = localpredictnrmse(dataset, n_last, m[name], tau[name], Tmax=T_max, nnei=20, q=m[name], timeseries_name=name)
     nrmse_lap, pred_lap = localpredictnrmse(dataset, n_last, m[name], tau[name], Tmax=T_max, nnei=20, q=0, timeseries_name=name)
 
+    print(f"{name} nrmse llp: {nrmse_llp}")
+    print(f"{name} nrmse lap: {nrmse_lap}")
+
     # plot 1 step predictions
     
     ### llp
