@@ -5,7 +5,7 @@ import random
 from typing import Literal
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 from statsmodels.stats.diagnostic import acorr_ljungbox
-from nolitsa import delay, dimension
+from nolitsa import d2, delay, dimension
 import nolds
 from statsmodels.tsa.arima.model import ARIMA
 
@@ -56,7 +56,7 @@ def plot_timeseries_stats(xV, name, savepath=None):
     ax = plt.subplot(2, 3, 6)
     ax.scatter(np.arange(1, len(ljung_pval) + 1), ljung_pval)
     ax.axhline(0.05, linestyle='--', color='r')
-    ax.set_title('Ljung-Box Portmanteau test')
+    ax.set_title('Ljung-Box Portmanteau test p-values')
     ax.set_yticks(np.arange(0, 1.1))
 
     if(savepath != None):
@@ -133,7 +133,7 @@ def embed_data(x, order=3, delay=1):
     return Y.T
 
 
-def correlationdimension(xV, tau, m_max, fac=4, logrmin=-1e6, logrmax=1e6, show=False, timeseries_name = None):
+def correlationdimension(xV, m_max, show=False, name = None):
     m_all = np.arange(1, m_max + 1)
     corrdimV = []
     logrM = []
@@ -152,19 +152,74 @@ def correlationdimension(xV, tau, m_max, fac=4, logrmin=-1e6, logrmax=1e6, show=
         ax.set_xlabel('m')
         ax.set_xticks(m_all)
         ax.set_ylabel('v')
-        ax.set_title(f'Corr Dim vs m {timeseries_name}')
+        ax.set_title(f'Corr Dim vs m {name}')
 
-        plt.savefig(f"./Part2/plots/cor_dim_{timeseries_name}.png")
+        plt.savefig(f"./Part2/plots/cor_dim_{name}.png")
         plt.show()
         plt.close()
 
     return corrdimV, logrM, logCrM, polyM
+
+def plot_correlation_dimension(xV, tau, m_max, name = None):
+    plt.figure(figsize=(6, 4))
+    plt.title(f'Local $D_2$ vs $r$ for {name}')
+    plt.xlabel(r'Distance $r$')
+    plt.ylabel(r'Local $D_2$')
+    dim = np.arange(1, m_max + 1)
+    m = dim[0]
+
+    for r, c in d2.c2_embed(xV, tau= tau, dim=dim):
+        plt.semilogx(r[3:-3], d2.d2(r, c), label=f'm={m}')
+        m += 1
+
+    plt.legend()
+    plt.savefig(f"./Part2/plots/cordim_{name}.png")
+    plt.show()
+
+
+def plot_correlation_dimension_2(xV, m_max = 10, rmin=0.1, rmax=100, name = None):
+    # Plot again using different method
+    debug_dataM = []
+    corr_dimM = []
+    dim = np.arange(1, m_max + 1)
+    rvals = np.logspace(np.log(rmin), np.log(rmax), 50)
+    for m in dim:
+        corr_dim, debug_data = nolds.corr_dim(xV, emb_dim=m, rvals=rvals, debug_data=True)
+        debug_dataM.append(debug_data)
+        corr_dimM.append(corr_dim)
+
+    fig, ax = plt.subplots(3, 1, figsize=(10, 8))
+    for i, debug_data in enumerate(debug_dataM):
+        rvals = debug_data[0] #values used for log(r)
+        csums = debug_data[1] #the corresponding log(C(r))
+        poly = debug_data[2] #line coefficients ([slope, intercept])
+        ax[0].plot(rvals, csums, label=f'm={i+1}')
+        ax[2].plot(rvals[1:], np.diff(csums)/np.diff(rvals), label=f'm={i+1}')
+        # poly_y = [poly[0] * xi + poly[1] for xi in rvals]
+        # ax[0].plot(rvals, poly_y, label=f'POLYY m={i+1}')
+
+    ax[0].set_xlabel('log(r)')
+    ax[0].set_xscale("log")
+    ax[0].set_ylabel('log(C(r))')
+    ax[1].plot(dim, corr_dimM, label='v')
+    ax[1].set_xlabel('m')
+    ax[1].set_ylabel('v')
+    ax[2].set_xlabel('log(r)')
+    ax[2].set_xscale("log")
+    ax[2].set_ylabel('slope')
+    plt.title(f'Local $D_2$ vs $r$ for {name}')
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(f"./Part2/plots/cordim2_{name}.png")
+    plt.show()
 
 
 def nrmse(trueV, predictedV):
     vartrue = np.sum((trueV - np.mean(trueV)) ** 2)
     varpred = np.sum((predictedV - trueV) ** 2)
     return np.sqrt(varpred / vartrue)
+
+
 
 
 def localpredictnrmse(xV, nlast, m, tau=1, Tmax=1, nnei=1, q=0, show=True, timeseries_name=None):

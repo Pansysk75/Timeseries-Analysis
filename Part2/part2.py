@@ -1,4 +1,6 @@
 from utilities import *
+import matplotlib
+matplotlib.use('tkagg')
 
 
 # load dataset
@@ -8,25 +10,25 @@ dataset_small = trim_dataset(dataset_all, 500, alignment='start')
 data = {"complete_dataset": dataset_all, "small_dataset": dataset_small}
 
 # timeseries' plots
-# for name, dataset in data.items():
-#     plot_timeseries_stats(dataset, name, "./Part2/plots")
-
-# first differences 
-data_fd = {}
 for name, dataset in data.items():
-    data_fd[name] = np.diff(dataset, 1)
+    plot_timeseries_stats(dataset, name, "./Part2/plots")
 
-# firts differences plots
+# # first differences 
+# data_fd = {}
+# for name, dataset in data.items():
+#     data_fd[name] = np.diff(dataset, 1)
+
+# # first differences plots
 # for name, dataset in data_fd.items():
 #     plot_timeseries_stats(dataset, f"{name}_first_diff", "./Part2/plots")
 
-# delayed mutual information
+# # delayed mutual information
 # for name, dataset in data.items():
 #     plot_delayed_mutual_information(dataset, 20, f"{name}")
 
 tau = {"complete_dataset": 5, "small_dataset": 1}
 
-# choice of embedding dimension m
+# # choice of embedding dimension m
 # maxnum = {"complete_dataset": 320, "small_dataset": 40}
 # for name, dataset in data.items():
 #     # false nearest neighbors
@@ -35,7 +37,7 @@ tau = {"complete_dataset": 5, "small_dataset": 1}
 
 m = {"complete_dataset": 5, "small_dataset": 4}
 
-# plot attractors
+# # plot attractors
 # for name, dataset in data.items():
 #     embedded = embed_data(dataset, order=m[name], delay=tau[name])
 #     # 3d attractor
@@ -43,8 +45,15 @@ m = {"complete_dataset": 5, "small_dataset": 4}
 #     plot_3d_attractor(embedded, name)
 
 # correlation dimension
-# for name, dataset in data.items():
-#     correlationdimension(dataset, tau[name], m_max=10, show=True, timeseries_name=name)
+for name, dataset in data.items():
+
+    # This doesn't work well for large m
+    plot_correlation_dimension(dataset, tau[name], m_max=5, name = name)
+
+    # This works fine but assumes tau=1
+    plot_correlation_dimension_2(dataset, m_max=10, rmin=0.5, rmax=10, name = name)
+
+    correlationdimension(dataset, m_max=10, show=True, name=name)
 
 # local predictions
 for name, dataset in data.items():
