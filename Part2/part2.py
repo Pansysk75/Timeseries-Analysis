@@ -48,10 +48,10 @@ m = {"complete_dataset": 5, "small_dataset": 4}
 for name, dataset in data.items():
 
     # This doesn't work well for large m
-    plot_correlation_dimension(dataset, tau[name], m_max=5, name = name)
+    plot_correlation_dimension(dataset, tau[name], m_max=3, name = name)
 
     # This works fine but assumes tau=1
-    plot_correlation_dimension_2(dataset, m_max=10, rmin=0.5, rmax=10, name = name)
+    plot_correlation_dimension_2(dataset, m_max=10, rmin=1.5, rmax=50, name = name)
 
     correlationdimension(dataset, m_max=10, show=True, name=name)
 
@@ -146,18 +146,18 @@ for name, dataset in data.items():
     n = len(dataset)
     train, test = dataset[:int(0.8 * n)], dataset[int(0.8*n):n]
 
-    model = ARIMA(train, order=(3, 1, 3)).fit()
-    pred = model.forecast(test.shape[0])
+    model = ARIMA(train, order=(1, 1, 1)).fit()
+    pred = ARIMA_out_of_sample_predict_ahead(test, model)
 
     # plot
     fig = plt.figure(figsize=(12,8))
     fig.suptitle(name, fontsize=16)
 
     plt.subplot(3, 1, 1)
-    plt.plot(np.arange(int(0.8 * n), n), pred, label='predictions')
     plt.plot(np.arange(int(0.8 * n), n), test, label='true values')
+    plt.plot(np.arange(int(0.8 * n), n), pred, label='predictions')
     nrmse_string = "{:.4f}".format(nrmse(test, pred))
-    plt.title(f"ARIMA (p=3, d=1, q=3) NRMSE={nrmse_string}")
+    plt.title(f"ARIMA(1,1,1), NRMSE={nrmse_string}")
     plt.legend()
 
     # Plot residuals
@@ -180,6 +180,7 @@ for name, dataset in data.items():
     plot_acf(resid, zero=False, lags=10, ax=ax)
     plt.title("Residuals ACF")
 
+    plt.tight_layout()
     plt.savefig(f"Part2/plots/arima_test_{name}.png")
     plt.show()
     plt.close()

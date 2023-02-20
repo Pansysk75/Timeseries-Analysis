@@ -182,33 +182,34 @@ def plot_correlation_dimension_2(xV, m_max = 10, rmin=0.1, rmax=100, name = None
     debug_dataM = []
     corr_dimM = []
     dim = np.arange(1, m_max + 1)
-    rvals = np.logspace(np.log(rmin), np.log(rmax), 50)
+    rvals = np.logspace(np.log10(rmin), np.log10(rmax), 30)
     for m in dim:
         corr_dim, debug_data = nolds.corr_dim(xV, emb_dim=m, rvals=rvals, debug_data=True)
         debug_dataM.append(debug_data)
         corr_dimM.append(corr_dim)
 
-    fig, ax = plt.subplots(3, 1, figsize=(10, 8))
+    fig, ax = plt.subplots(3, 1, figsize=(6, 8))
+    plt.suptitle(f'Estimating correlation dimension ({name})')
+
     for i, debug_data in enumerate(debug_dataM):
-        rvals = debug_data[0] #values used for log(r)
+        # rvals = debug_data[0] #values used for log(r)
         csums = debug_data[1] #the corresponding log(C(r))
         poly = debug_data[2] #line coefficients ([slope, intercept])
         ax[0].plot(rvals, csums, label=f'm={i+1}')
-        ax[2].plot(rvals[1:], np.diff(csums)/np.diff(rvals), label=f'm={i+1}')
+        ax[1].plot(rvals[1:], np.diff(csums)/np.diff(rvals), label=f'm={i+1}')
         # poly_y = [poly[0] * xi + poly[1] for xi in rvals]
         # ax[0].plot(rvals, poly_y, label=f'POLYY m={i+1}')
 
     ax[0].set_xlabel('log(r)')
     ax[0].set_xscale("log")
     ax[0].set_ylabel('log(C(r))')
-    ax[1].plot(dim, corr_dimM, label='v')
-    ax[1].set_xlabel('m')
-    ax[1].set_ylabel('v')
-    ax[2].set_xlabel('log(r)')
-    ax[2].set_xscale("log")
-    ax[2].set_ylabel('slope')
-    plt.title(f'Local $D_2$ vs $r$ for {name}')
-    plt.legend()
+    ax[1].set_xlabel('log(r)')
+    ax[1].set_xscale("log")
+    ax[1].set_ylabel('slope')
+    ax[2].plot(dim, corr_dimM, label='v')
+    ax[2].set_xlabel('m')
+    ax[2].set_ylabel('v')
+    ax[1].legend()
     plt.tight_layout()
     plt.savefig(f"./Part2/plots/cordim2_{name}.png")
     plt.show()
@@ -285,3 +286,17 @@ def localpredictnrmse(xV, nlast, m, tau=1, Tmax=1, nnei=1, q=0, show=True, times
         plt.close()
 
     return nrmseV, preM
+
+
+def ARIMA_out_of_sample_predict_ahead(xV_test, model, T_list=[1]):
+    '''
+    Get out-of-sample T-timestep ahead predictions for every T in T_list
+    '''
+    predV = np.full(len(xV_test), fill_value=np.nan)
+    for t in range(len(xV_test)):
+        # Forecast the next datapoint
+        predV[t] = model.forecast(1)
+        # Append the next datapoint to the model's data
+        model = model.append([xV_test[t]], refit=False)
+
+    return predV

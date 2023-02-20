@@ -127,3 +127,16 @@ def in_sample_predict_ahead(xV, model, T_list=[1]):
         predM.append(predV)
     return predM
 
+
+def out_of_sample_predict_ahead(xV_test, model, T_list=[1]):
+    '''
+    Get out-of-sample T-timestep ahead predictions for every T in T_list
+    '''
+    predV = np.full(len(xV_test), fill_value=np.nan)
+    for t in range(len(xV_test)):
+        # Forecast the next datapoint
+        predV[t] = model.forecast(1)
+        # Append the next datapoint to the model's data
+        model = model.append([xV_test[t]], refit=False)
+
+    return predV
